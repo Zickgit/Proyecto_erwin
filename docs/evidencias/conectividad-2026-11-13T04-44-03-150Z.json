@@ -1,0 +1,68 @@
+{
+  "at": "2026-11-13T04:44:03.150Z",
+  "count": 20,
+  "clientToNode": [
+    {
+      "node": "A",
+      "url": "http://127.0.0.1:3001",
+      "ok": true,
+      "ms": 37.5,
+      "error": null,
+      "db": "data/nodeA.db"
+    },
+    {
+      "node": "B",
+      "url": "http://127.0.0.1:3002",
+      "ok": true,
+      "ms": 3.73,
+      "error": null,
+      "db": "data/nodeB.db"
+    }
+  ],
+  "nodeToNode": [
+    {
+      "from": "A",
+      "to": "B",
+      "peer": "B",
+      "url": "http://127.0.0.1:3002",
+      "link": {
+        "up": true,
+        "latencyMs": 0,
+        "jitterMs": 0,
+        "lossRate": 0
+      },
+      "sent": 20,
+      "ok": 20,
+      "failed": 0,
+      "lossPct": 0,
+      "latencyMs": {
+        "min": 1.46,
+        "avg": 2.5,
+        "max": 4.23
+      },
+      "failureReasons": []
+    },
+    {
+      "from": "B",
+      "to": "A",
+      "peer": "A",
+      "url": "http://127.0.0.1:3001",
+      "link": {
+        "up": true,
+        "latencyMs": 0,
+        "jitterMs": 0,
+        "lossRate": 0
+      },
+      "sent": 20,
+      "ok": 20,
+      "failed": 0,
+      "lossPct": 0,
+      "latencyMs": {
+        "min": 1.2,
+        "avg": 2.02,
+        "max": 4.51
+      },
+      "failureReasons": []
+    }
+  ]
+}

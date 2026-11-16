@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Incidentes · Prototipo distribuido</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">⚑</span>
+      <div>
+        <div class="brand-title">Alertas e incidentes</div>
+        <div class="brand-node" id="node-identity">Conectando…</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="peers" id="peer-badges" aria-label="Estado de los nodos"></div>
+      <label class="user-select">
+        <span>Usuario de prueba</span>
+        <select id="user-select" aria-label="Usuario de prueba"></select>
+      </label>
+    </div>
+  </header>
+
+  <div id="banners" class="banners" aria-live="assertive"></div>
+
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#/incidentes" data-route="incidentes">Tablero</a>
+    <a href="#/nuevo" data-route="nuevo" data-perm="incident:create">+ Nuevo</a>
+    <a href="#/sync" data-route="sync" data-perm="sync:status">Red y sincronización</a>
+    <a href="#/bitacora" data-route="bitacora" data-perm="audit:read">Bitácora</a>
+  </nav>
+
+  <main id="main" tabindex="-1"></main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <footer class="footer">
+    Prototipo académico · UNACH · Cómputo distribuido (Laboratorio 2). <strong>No es un servicio real de emergencias.</strong>
+    Datos, personas y ubicaciones ficticios. Autenticación simulada.
+  </footer>
+</body>
+</html>

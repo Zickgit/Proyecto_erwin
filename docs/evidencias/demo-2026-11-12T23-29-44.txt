@@ -1,0 +1,97 @@
+﻿**********************
+Inicio de la transcripción de Windows PowerShell
+Hora de inicio: 20261112232944
+Nombre de usuario: [omitido]
+Usuario RunAs: [omitido]
+Nombre de la configuración: 
+Máquina: [omitido]
+Aplicación host: [omitido]
+Id. de proceso: [omitido]
+PSVersion: 5.1.26100.9818
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9818
+BuildVersion: 10.0.26100.9818
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+
+==== PASO 0 · Verificar nodos ====
+Nodo A (Sector Norte) OK · db=data/nodeA.db · pid=17960
+Nodo B (Sector Sur) OK · db=data/nodeB.db · pid=11272
+Prototipo académico: NO es un sistema oficial de emergencias. Datos ficticios.
+
+==== PASO 1 · Registrar un incidente en el Nodo A y otro en el Nodo B ====
+A: d9284733 origen=A estado=NUEVO sync=PENDIENTE
+B: 63fb10a6 origen=B estado=NUEVO sync=PENDIENTE
+
+==== PASO 2 · Consulta agregada desde A: origen y fuente de cada dato (T-05) ====
+PS>ErrorTerminación(Invoke-RestMethod): "{"error":"INCIDENT_NOT_FOUND","message":"No existe el incidente 63fb10a6-58fb-4a45-bb85-b90e24da762b en el nodo A"}"
+>> ErrorTerminación(Invoke-RestMethod): "{"error":"INCIDENT_NOT_FOUND","message":"No existe el incidente 63fb10a6-58fb-4a45-bb85-b90e24da762b en el nodo A"}"
+PS>ErrorTerminación(Invoke-RestMethod): "{"error":"INCIDENT_NOT_FOUND","message":"No existe el incidente 63fb10a6-58fb-4a45-bb85-b90e24da762b en el nodo A"}"
+>> ErrorTerminación(Invoke-RestMethod): "{"error":"INCIDENT_NOT_FOUND","message":"No existe el incidente 63fb10a6-58fb-4a45-bb85-b90e24da762b en el nodo A"}"
+complete=True total=2
+
+node role   status servedFrom total latencyMs
+---- ----   ------ ---------- ----- ---------
+A    LOCAL  OK     EN_VIVO        1         0
+B    REMOTO OK     EN_VIVO        1      3.18
+
+shortId  originNode fuente  respondio status sync        
+-------  ---------- ------  --------- ------ ----        
+63fb10a6 B          EN_VIVO B         NUEVO  SINCRONIZADO
+d9284733 A          EN_VIVO A         NUEVO  SINCRONIZADO
+
+==== PASO 3 · Cambiar estado y comprobar auditoría (T-03, T-04) ====
+PS>ErrorTerminación(Invoke-RestMethod): "{"error":"INVALID_TRANSITION","message":"Transición no permitida: Nuevo → Cerrado","details":{"from":"NUEVO","to":"CERRADO","allowed":["VALIDADO","CANCELADO"]}}"
+Transición inválida rechazada: {"error":"INVALID_TRANSITION","message":"Transición no permitida: Nuevo → Cerrado","details":{"from":"NUEVO","to":"CERRADO","allowed":["VALIDADO","CANCELADO"]}}
+
+at                       action     actor    actorRole   node fromStatus toStatus source
+--                       ------     -----    ---------   ---- ---------- -------- ------
+2026-11-13T05:29:44.909Z CREAR      op.norte OPERADOR    A               NUEVO    LOCAL 
+2026-11-13T05:29:45.896Z TRANSICION coord    COORDINADOR A    NUEVO      VALIDADO LOCAL 
+2026-11-13T05:29:45.898Z ASIGNAR    coord    COORDINADOR A    VALIDADO   ASIGNADO LOCAL
+
+==== PASO 4 · Desconexión REAL: detener el proceso del Nodo B (T-06, T-07) ====
+[2026-11-12T23:29:46.6115920-06:00] Deteniendo PID 11272 (node) que escucha en el puerto 3002
+Creado en A con B caído: cf7790be sync=PENDIENTE
+Cola A->B: pendientes=3 error=CONNECTION_REFUSED peer=offline
+Consulta agregada: complete=False total=
+RESULTADO PARCIAL: no respondió el nodo B. Sus datos se muestran desde la réplica local y pueden estar desactualizados.
+
+node status        error              servedFrom    returned
+---- ------        -----              ----------    --------
+A    OK                               EN_VIVO              2
+B    NO_DISPONIBLE CONNECTION_REFUSED REPLICA_LOCAL        1
+
+==== PASO 5 · Reconectar: reiniciar el Nodo B y verificar sincronización y deduplicación (T-08) ====
+PS>ErrorTerminación(Invoke-RestMethod): "{"error":"INCIDENT_NOT_FOUND","message":"No existe el incidente cf7790be-02bf-4141-9edb-fbfa937d62a4 en el nodo B"}"
+B recibió el incidente pendiente: True
+Conteos en B antes/después de sincronizar 2 veces más: incidentes 6/6 · bitácora 11/11 (sin duplicados)
+Bitácora persistente de red/sincronización en A (más reciente primero):
+
+at                       peer kind      detalle                                                                                           
+--                       ---- ----      -------                                                                                           
+2026-11-13T05:29:51.475Z B    PUSH_OK   {"peer":"B","reason":"PERIODICO","sent":3,"delivered":3,"results":{"APLICADO":3},"error":null}    
+2026-11-13T05:29:51.474Z B    PEER_UP   {"latencyMs":31.62}                                                                               
+2026-11-13T05:29:48.444Z B    PUSH_FAIL {"peer":"B","reason":"PERIODICO","sent":0,"delivered":0,"results":{},"error":"CONNECTION_REFUSED"}
+2026-11-13T05:29:48.444Z B    PEER_DOWN {"reason":"CONNECTION_REFUSED"}                                                                   
+2026-11-13T05:29:45.450Z B    RECEIVED  {"received":1,"processed":1,"APLICADO":1}                                                         
+2026-11-13T05:29:45.447Z B    PUSH_OK   {"peer":"B","reason":"PERIODICO","sent":1,"delivered":1,"results":{"APLICADO":1},"error":null}    
+2026-11-13T05:29:30.463Z B    PEER_UP   {"latencyMs":46.84}                                                                               
+2026-11-13T05:29:30.446Z B    PUSH_OK   {"peer":"B","reason":"ARRANQUE","sent":0,"delivered":0,"results":{},"error":null}
+
+==== PASO 6 · Conflicto controlado: partición simulada, edición en ambos nodos y LWW (T-09) ====
+Durante la partición:
+  A ve: VALIDADO   B ve: CANCELADO
+Tras reconectar:  A=CANCELADO (v2, B)   B=CANCELADO (v2, B)
+  Nodo A: conflicto registrado, ganó REMOTO (local=VALIDADO, remoto=CANCELADO)
+  Nodo B: conflicto registrado, ganó LOCAL (local=CANCELADO, remoto=VALIDADO)
+
+==== PASO 7 · Fin ====
+Muestre además: npm test (34 pruebas), la interfaz web y docs/. Evidencia guardada en docs/evidencias/.
+**********************
+Fin de la transcripción de Windows PowerShell
+Hora de finalización: 20261112232954
+**********************

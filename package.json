@@ -1,0 +1,24 @@
+{
+  "name": "incidentes-distribuidos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prototipo académico de sistema distribuido de alertas e incidentes (UNACH - Cómputo distribuido, Laboratorio 2). No es un servicio real de emergencias.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node scripts/start-all.js",
+    "start:a": "node --disable-warning=ExperimentalWarning --env-file=config/nodeA.env src/server.js",
+    "start:b": "node --disable-warning=ExperimentalWarning --env-file=config/nodeB.env src/server.js",
+    "start:all": "node scripts/start-all.js",
+    "net:test": "node scripts/connectivity-test.js",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js",
+    "restore": "node --disable-warning=ExperimentalWarning scripts/restore.js",
+    "test": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "test:evidence": "node --disable-warning=ExperimentalWarning --test --test-concurrency=1 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=spec --test-reporter-destination=docs/evidencias/pruebas-automaticas.txt \"tests/**/*.test.js\""
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
