@@ -94,6 +94,18 @@ describe('T-08 Sincronización y deduplicación', () => {
   });
 });
 
+describe('Red: desfase de reloj (requisito de LWW entre equipos)', () => {
+  it('el heartbeat mide el desfase de reloj con cada peer', async () => {
+    const peer = await waitFor(async () => {
+      const p = (await get(A, '/api/network/peers')).body.peers[0];
+      return p.clockSkewMs !== null ? p : null;
+    }, { msg: 'medición de desfase' });
+    assert.equal(typeof peer.clockSkewMs, 'number');
+    assert.ok(Math.abs(peer.clockSkewMs) < 1000, `misma máquina: desfase ${peer.clockSkewMs} ms`);
+    assert.equal(peer.clockSkewWarnMs, 1000);
+  });
+});
+
 describe('T-05 Consulta distribuida', () => {
   it('la consulta agregada combina ambos nodos e identifica el origen', async () => {
     const tag = `agg-${Date.now()}`;

@@ -12,6 +12,8 @@
     "start:a": "node --disable-warning=ExperimentalWarning --env-file=config/nodeA.env src/server.js",
     "start:b": "node --disable-warning=ExperimentalWarning --env-file=config/nodeB.env src/server.js",
     "start:all": "node scripts/start-all.js",
+    "start:lan:a": "node --disable-warning=ExperimentalWarning --env-file=config/nodeA.local.env src/server.js",
+    "start:lan:b": "node --disable-warning=ExperimentalWarning --env-file=config/nodeB.local.env src/server.js",
     "net:test": "node scripts/connectivity-test.js",
     "backup": "node --disable-warning=ExperimentalWarning scripts/backup.js",
     "restore": "node --disable-warning=ExperimentalWarning scripts/restore.js",

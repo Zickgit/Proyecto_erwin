@@ -1,5 +1,7 @@
 // Prueba de conectividad y latencia entre nodos (evidencia de Fase 2).
-// Uso: node scripts/connectivity-test.js [conteo]   (los nodos deben estar levantados)
+// Uso: node scripts/connectivity-test.js [conteo] [urlNodoA] [urlNodoB]   (los nodos deben estar levantados)
+//   Un equipo:   npm run net:test
+//   Dos equipos: npm run net:test -- 10 http://192.168.1.10:3001 http://192.168.1.20:3002
 // Guarda la evidencia en docs/evidencias/conectividad-<fecha>.json
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,9 +10,11 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const count = Number.parseInt(process.argv[2] ?? '10', 10);
 const NODES = [
-  { id: 'A', url: 'http://127.0.0.1:3001' },
-  { id: 'B', url: 'http://127.0.0.1:3002' },
+  { id: 'A', url: (process.argv[3] ?? 'http://127.0.0.1:3001').replace(/\/+$/, '') },
+  { id: 'B', url: (process.argv[4] ?? 'http://127.0.0.1:3002').replace(/\/+$/, '') },
 ];
+const mode = NODES.every((n) => /\/\/(127\.|localhost)/.test(n.url)) ? 'UN_EQUIPO (loopback)' : 'LAN (equipos separados)';
+console.log(`Modo: ${mode} · A=${NODES[0].url} · B=${NODES[1].url}\n`);
 
 async function get(url) {
   const t0 = performance.now();
@@ -22,7 +26,7 @@ async function get(url) {
   }
 }
 
-const report = { at: new Date().toISOString(), count, clientToNode: [], nodeToNode: [] };
+const report = { at: new Date().toISOString(), mode, nodes: NODES, count, clientToNode: [], nodeToNode: [], clockSkew: [] };
 
 console.log('== 1) Cliente -> nodo (GET /api/health) ==');
 for (const n of NODES) {
@@ -43,6 +47,16 @@ for (const n of NODES) {
     const lat = x.latencyMs ? `min ${x.latencyMs.min} / prom ${x.latencyMs.avg} / máx ${x.latencyMs.max} ms` : 'sin respuestas';
     console.log(`  ${n.id} -> ${x.peer}: ${x.ok}/${x.sent} OK, pérdida ${x.lossPct}% · ${lat}${x.failureReasons.length ? ` · motivos: ${x.failureReasons.join(', ')}` : ''}`);
     report.nodeToNode.push({ from: n.id, to: x.peer, ...x });
+  }
+}
+
+console.log('\n== 3) Desfase de reloj medido por cada nodo (LWW requiere < 1000 ms) ==');
+for (const n of NODES) {
+  const r = await get(`${n.url}/api/network/peers`);
+  for (const p of r.body?.peers ?? []) {
+    const skew = p.clockSkewMs;
+    console.log(`  ${n.id} -> ${p.id} (${p.url}): ${skew == null ? 'sin medición aún (espere un heartbeat)' : `${skew} ms ${Math.abs(skew) <= 1000 ? 'OK' : 'DESINCRONIZADO'}`}`);
+    report.clockSkew.push({ from: n.id, to: p.id, peerUrl: p.url, clockSkewMs: skew });
   }
 }
 

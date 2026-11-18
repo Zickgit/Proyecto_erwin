@@ -4,17 +4,19 @@ Prototipo académico (UNACH · Cómputo distribuido · Laboratorio 2). Datos fic
 
 **Entorno de ejecución de las pruebas registradas:** Windows 11, Node.js 24.14.0, SQLite 3.51.2 (`node:sqlite`), dos nodos en la misma máquina sobre loopback. Fecha: 2026-11-13 (UTC).
 
+> **Modalidades.** Las fichas registran la ejecución en **un equipo** (dos procesos). Para repetir T-05 a T-09, T-11 y T-12 con **dos computadoras** en una LAN, con red, firewall y desconexión física reales, sigue [DESPLIEGUE_DOS_EQUIPOS.md](DESPLIEGUE_DOS_EQUIPOS.md) y agrega a cada ficha el resultado observado en «modo dos equipos».
+
 ## 0. Cómo ejecutar las pruebas
 
 | Tipo | Comando | Qué hace |
 |---|---|---|
-| Automáticas (34 casos) | `npm test` | Levanta **procesos reales** de nodos en los puertos 3101, 3111/3112 y 3121/3122, con bases temporales. No toca `data/` ni los nodos 3001/3002 |
+| Automáticas (35 casos) | `npm test` | Levanta **procesos reales** de nodos en los puertos 3101, 3111/3112 y 3121/3122, con bases temporales. No toca `data/` ni los nodos 3001/3002 |
 | Automáticas con evidencia | `npm run test:evidence` | Igual que la anterior, y además guarda la salida en [`docs/evidencias/pruebas-automaticas.txt`](evidencias/pruebas-automaticas.txt) |
 | Guion de demostración | `powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 [-Pausa]` | Recorre el guion de la sección 11 del laboratorio contra los nodos 3001/3002 y guarda la transcripción en `docs/evidencias/demo-<fecha>.txt` |
 | Conectividad | `npm run net:test` | Mide la latencia cliente→nodo y nodo→nodo (Fase 2) |
 | Manuales | Ver cada prueba | Se usan la interfaz web, PowerShell y los scripts de `scripts/` |
 
-**Resultado de la última corrida automática:** `tests 34 · pass 34 · fail 0` en 7.8 s. Detalle por caso en [`pruebas-automaticas.txt`](evidencias/pruebas-automaticas.txt).
+**Resultado de la última corrida automática (2026-11-18):** `tests 35 · pass 35 · fail 0` en 7.8 s. Detalle por caso en [`pruebas-automaticas.txt`](evidencias/pruebas-automaticas.txt).
 
 Encabezados que se usan en los ejemplos de PowerShell:
 
@@ -222,7 +224,7 @@ También se puede hacer desde la interfaz: **Red y sincronización → Simulaci�
 | Precondiciones | Nodo activo |
 | Pasos | 1. Peticiones sin `X-User` o con un usuario inexistente. 2. Matriz de permisos: el Operador intenta transicionar, asignar y leer la bitácora; el Auditor intenta crear y transicionar. 3. Búsqueda con `' OR 1=1 --`. 4. Pedir un ID no UUID. 5. Revisar las cabeceras CSP. 6. Revisar los archivos de configuración versionados. 7. Un peer no declarado intenta `POST /api/sync/receive`. 8. Llamar a `/api/admin/*` desde otra máquina |
 | Resultado esperado | 1 → `401`. 2 → `403 FORBIDDEN` con el permiso requerido (la matriz se lee de la BD). 3 → `200` con 0 resultados (consultas parametrizadas). 4 → `400` sin traza interna. 5 → CSP sin `unsafe-inline` y sin scripts ni estilos inline. 6 → solo variables permitidas, sin secretos. 7 → `403 UNKNOWN_PEER`. 8 → `403 ADMIN_LOCAL_ONLY` |
-| Resultado observado | 1–7 verificados automáticamente (T-12, 6 casos, y T-08 «solo peers declarados»). En la UI se comprobó que Operador y Auditor no ven acciones que su rol no permite. El punto 8 se garantiza por código (`localOnly`, que compara la IP de origen con loopback); no se probó desde una segunda máquina |
+| Resultado observado | 1–7 verificados automáticamente (T-12, 6 casos, y T-08 «solo peers declarados»). En la UI se comprobó que Operador y Auditor no ven acciones que su rol no permite. Punto 8, verificado el 2026-11-18 con el nodo escuchando en `0.0.0.0`: una llamada a la IP LAN del equipo (`PUT http://<IP LAN>:3002/api/admin/links/A`) respondió `403 ADMIN_LOCAL_ONLY`, y la misma llamada por `127.0.0.1` fue aceptada. Para la prueba con dos computadoras, ver [DESPLIEGUE_DOS_EQUIPOS.md §7.3](DESPLIEGUE_DOS_EQUIPOS.md#73-administración-solo-local-t-12-punto-8) |
 | Evidencia | `pruebas-automaticas.txt` (T-12); `src/middleware/auth.js`, `src/middleware/localOnly.js` |
 | Conclusión | **Aprobada**, con los límites declarados: autenticación simulada (sin contraseñas), sin TLS y secreto entre nodos opcional (`SYNC_SECRET`) |
 

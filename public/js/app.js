@@ -115,6 +115,13 @@ function renderBanners() {
       Los cambios hechos aquí se guardan en la cola local y se enviarán al reconectar; las consultas agregadas serán <strong>parciales</strong>.
     </div></div>`);
   }
+  for (const p of state.peers.filter((x) => x.status === 'online' && x.clockSkewMs != null && Math.abs(x.clockSkewMs) > x.clockSkewWarnMs)) {
+    out.push(`<div class="banner warn" role="status"><span class="icon" aria-hidden="true">🕒</span><div>
+      <strong>Reloj desincronizado con el Nodo ${esc(p.id)}: ${esc((p.clockSkewMs / 1000).toFixed(1))} s.</strong>
+      La resolución de conflictos («gana la última escritura») compara horas: sincronice la hora de ambos equipos
+      (Configuración → Hora e idioma → Sincronizar ahora).
+    </div></div>`);
+  }
   const pending = state.health?.database?.counts?.outboxPending ?? 0;
   if (state.reachable && pending > 0) {
     out.push(`<div class="banner info" role="status"><span class="icon" aria-hidden="true">⏳</span><div>

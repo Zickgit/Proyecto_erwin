@@ -9,6 +9,7 @@
 | Separación física de los datos | **Simulada** | Archivos `.db` separados en un mismo disco; no son máquinas distintas |
 | Caída de un nodo (matar el proceso) | **Real** | `scripts/kill-node.ps1` / `.sh` termina el proceso; el peer recibe `ECONNREFUSED` |
 | Corte de enlace, latencia, jitter y pérdida | **Simulados por software** | Capa `src/network/netsim.js`, controlada con `/api/admin/links` |
+| Dos computadoras (modo LAN, opcional) | **Real** | Nodos en equipos distintos, tráfico por la LAN y firewall real; ver [DESPLIEGUE_DOS_EQUIPOS.md](DESPLIEGUE_DOS_EQUIPOS.md) |
 | Topología Mesh/MANET | **Simulada** | Malla completa configurable por `PEERS`; la movilidad se emula cortando y restableciendo enlaces. **No** hay enrutamiento multi-salto real (AODV/OLSR) |
 
 ## 2. Topología
@@ -47,11 +48,20 @@ C: PEERS=A=http://127.0.0.1:3001,B=http://127.0.0.1:3002
 
 Variables de cada nodo (ver [`.env.example`](../.env.example)): `NODE_ID`, `NODE_NAME`, `HOST`, `PORT`, `DB_PATH`, `PEERS`, `PEER_TIMEOUT_MS` (1500), `HEARTBEAT_MS` (5000).
 
-### Despliegue en dos máquinas de una LAN de laboratorio (opcional)
+### Despliegue en dos computadoras de una LAN de laboratorio
 
-1. En cada máquina, en su `.env`, poner `HOST=0.0.0.0` y en `PEERS` la IP LAN del otro equipo, por ejemplo `PEERS=B=http://192.168.56.12:3002`.
-2. Aplicar las reglas de firewall de la sección 4, restringidas a la subred del laboratorio.
-3. Las rutas `/api/admin/*` siguen aceptando solo peticiones desde la propia máquina (loopback), aunque el nodo escuche en todas las interfaces.
+Guía completa paso a paso: **[DESPLIEGUE_DOS_EQUIPOS.md](DESPLIEGUE_DOS_EQUIPOS.md)**. En resumen:
+1. `scripts/setup-lan.ps1` genera en cada equipo `config/nodeX.local.env` (con `HOST=0.0.0.0` y `PEERS` apuntando a la IP del otro equipo) y crea la regla de firewall.
+2. Se arranca con `npm run start:lan:a` / `start:lan:b`.
+
+En esta modalidad, los nodos y la red entre ellos son **reales**. La caída se puede provocar desconectando el Wi-Fi o el cable, o con una regla de bloqueo del firewall (`setup-lan.ps1 -BloquearPeer`). Mesh/MANET sigue siendo simulado.
+
+Las rutas `/api/admin/*` siguen aceptando solo peticiones desde la propia máquina (loopback), aunque el nodo escuche en todas las interfaces. Se verificó el 2026-11-18: una llamada a la IP LAN del equipo respondió `403 ADMIN_LOCAL_ONLY` y la misma llamada por `127.0.0.1` fue aceptada.
+
+| Equipo | Nodo | IP LAN | Puerto | Configuración |
+|---|---|---|---|---|
+| 1 | A | *(completar)* | 3001 | `config/nodeA.local.env` |
+| 2 | B | *(completar)* | 3002 | `config/nodeB.local.env` |
 
 ## 4. Firewall
 

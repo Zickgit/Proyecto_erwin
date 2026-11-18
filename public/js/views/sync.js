@@ -7,7 +7,7 @@ const KIND_CLASS = {
   PEER_UP: 'kind-ok', PUSH_OK: 'kind-ok', NODE_REJOINED_SIMULATED: 'kind-ok',
   PEER_DOWN: 'kind-bad', PUSH_FAIL: 'kind-bad', CONFLICT: 'kind-bad', NODE_ISOLATED_SIMULATED: 'kind-bad',
   LINK_CHANGED_SIMULATED: 'kind-warn', RECEIVED: 'kind', NODE_STARTED: 'kind',
-  RECONCILE: 'kind-ok', RECONCILE_FAIL: 'kind-bad',
+  RECONCILE: 'kind-ok', RECONCILE_FAIL: 'kind-bad', CLOCK_SKEW: 'kind-warn', CLOCK_OK: 'kind-ok',
 };
 const KIND_LABEL = {
   PEER_UP: 'Peer recuperado', PEER_DOWN: 'Peer caído', PUSH_OK: 'Envío correcto', PUSH_FAIL: 'Envío fallido',
@@ -15,6 +15,7 @@ const KIND_LABEL = {
   LINK_CHANGED_SIMULATED: 'Enlace modificado (simulado)', NODE_ISOLATED_SIMULATED: 'Nodo aislado (simulado)',
   NODE_REJOINED_SIMULATED: 'Nodo reintegrado (simulado)',
   RECONCILE: 'Reconciliación', RECONCILE_FAIL: 'Reconciliación fallida',
+  CLOCK_SKEW: 'Reloj desincronizado', CLOCK_OK: 'Reloj sincronizado',
 };
 
 let kindFilter = '';
@@ -116,6 +117,8 @@ function peerCard(p, net, status) {
       <dt>Último error</dt><dd>${esc(p.outbox.lastError ?? '—')}${p.outbox.maxAttempts ? ` · ${esc(p.outbox.maxAttempts)} intento(s)` : ''}</dd>
       <dt>Última entrega</dt><dd>${esc(fmt(p.outbox.lastDeliveredAt))}</dd>
       <dt>Recibido de ${esc(p.peer)}</dt><dd>${recv.length ? recv.map((r) => `${esc(r.result)}: ${esc(r.n)}`).join(' · ') : '—'}</dd>
+      <dt>Desfase de reloj</dt><dd>${net?.clockSkewMs == null ? '—' : `${esc(net.clockSkewMs)} ms${Math.abs(net.clockSkewMs) > net.clockSkewWarnMs ? ' <strong>(DESINCRONIZADO)</strong>' : ' (aceptable)'}`}</dd>
+      <dt>URL del peer</dt><dd>${esc(net?.url ?? '—')}</dd>
       <dt>Enlace (simulación)</dt><dd>${link.up ? 'Activo' : '<strong>CORTADO</strong>'} · latencia ${esc(link.latencyMs)} ms · pérdida ${esc(Math.round(link.lossRate * 100))} %</dd>
     </dl>
     <details data-sim="${esc(p.peer)}"${openSims.has(p.peer) ? ' open' : ''}><summary class="small">Simulación de red (SIMULADO, solo desde esta máquina)</summary>

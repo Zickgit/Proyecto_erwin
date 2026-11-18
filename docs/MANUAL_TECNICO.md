@@ -120,7 +120,7 @@ flowchart TB
 cd incidentes-distribuidos
 # 2. Instalar dependencias (solo express)
 npm install
-# 3. Verificar todo con las pruebas automáticas (34 casos, ~8 s)
+# 3. Verificar todo con las pruebas automáticas (35 casos, ~8 s)
 npm test
 # 4. Levantar los dos nodos
 npm run start:all
@@ -148,6 +148,8 @@ Cada nodo lee su archivo con `node --env-file=config/nodeX.env`. Una variable de
 | `SYNC_SECRET` | *(no versionado)* | Secreto compartido opcional entre nodos. Definirlo solo en el entorno del proceso |
 | `BACKUP_DIR` | *(opcional)* | Carpeta de los respaldos (por defecto, `backups/`) |
 
+En el modo de dos computadoras, `scripts/setup-lan.ps1` genera `config/nodeA.local.env` / `nodeB.local.env` con `HOST=0.0.0.0`, `PEERS` apuntando a la IP real del otro equipo, `PEER_TIMEOUT_MS=2500` y, si se indica, `SYNC_SECRET`. Esos archivos están en `.gitignore`.
+
 La plantilla documentada es [`.env.example`](../.env.example). Los archivos `config/*.env` versionados **no contienen secretos**, y la prueba T-12 lo verifica.
 
 **Agregar un tercer nodo (C):**
@@ -166,11 +168,12 @@ La plantilla documentada es [`.env.example`](../.env.example). Los archivos `con
 | Interfaz | http://127.0.0.1:3001 · http://127.0.0.1:3002 | La misma UI, servida por cada nodo |
 | Guion de defensa | `powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 -Pausa` | Recorre la sección 11 del laboratorio y guarda la transcripción |
 
-**Dos máquinas en una LAN de laboratorio:**
-1. En cada máquina, poner `HOST=0.0.0.0`.
-2. En `PEERS`, poner la IP LAN del otro equipo.
-3. Abrir el puerto solo hacia la subred del laboratorio ([RED_MESH_MANET.md §4](RED_MESH_MANET.md#4-firewall)).
+**Dos computadoras en una LAN de laboratorio:** guía paso a paso en [DESPLIEGUE_DOS_EQUIPOS.md](DESPLIEGUE_DOS_EQUIPOS.md).
+1. En cada equipo, `scripts/setup-lan.ps1 -Nodo X -IpPeer <IP del otro> [-Firewall] [-SyncSecret …]` revisa la IP, el perfil de red y la hora, crea la regla de firewall y genera `config/nodeX.local.env`. Git ignora ese archivo.
+2. Se arranca con `npm run start:lan:a` / `start:lan:b`.
+3. `setup-lan.ps1 -BloquearPeer` / `-DesbloquearPeer` provoca una partición **real** con el firewall.
 4. Las rutas `/api/admin/*` siguen restringidas a loopback.
+5. Cada nodo mide el **desfase de reloj** con sus peers en el heartbeat. La UI avisa si supera 1 s, porque LWW depende de relojes sincronizados.
 
 ---
 
@@ -212,7 +215,8 @@ SELECT at, peer, kind, detail FROM sync_log ORDER BY id DESC LIMIT 30;
 | `ExperimentalWarning: SQLite…` | Ejecutar `node src/server.js` sin el flag | Usar los scripts npm, que incluyen `--disable-warning` |
 | Peer `offline` con `LINK_DOWN_SIMULATED` | Quedó cortado el enlace simulado | `PUT /api/admin/links/<peer>` con `{"up":true}`, o reiniciar el nodo (la simulación vive en memoria) |
 | Peer `offline` con `CONNECTION_REFUSED` | El proceso del peer no está corriendo | Iniciarlo |
-| Peer `offline` con `TIMEOUT` | Peer saturado, enlace degradado o firewall | `npm run net:test`; revisar las reglas de firewall |
+| Peer `offline` con `TIMEOUT` | Peer saturado, enlace degradado, firewall o *client isolation* de la red Wi-Fi | `npm run net:test`; revisar las reglas de firewall; ver [DESPLIEGUE_DOS_EQUIPOS.md §10](DESPLIEGUE_DOS_EQUIPOS.md#10-problemas-frecuentes) |
+| Aviso «Reloj desincronizado» | Desfase mayor a 1 s entre equipos | Sincronizar la hora en ambos equipos (afecta a LWW) |
 | Pendientes que no bajan | Peer caído, `SYNC_SECRET` distinto o peer no declarado | Ver `lastError` en `/api/sync/status`; `PUSH_FAIL` en `sync_log` |
 | `401 BAD_SYNC_SECRET` en el peer | Los nodos tienen `SYNC_SECRET` distintos | Definir el mismo valor en ambos procesos |
 | La UI muestra «resultado PARCIAL» | Un nodo no respondió a la consulta agregada | Esperado (T-06); revisar ese nodo |

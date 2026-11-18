@@ -19,7 +19,7 @@ Dos nodos independientes (A en el **:3001** y B en el **:3002**), cada uno con s
 
 ```bash
 npm install
-npm test             # 34 pruebas automáticas con procesos reales (~8 s)
+npm test             # 35 pruebas automáticas con procesos reales (~8 s)
 npm run start:all    # Nodo A :3001 + Nodo B :3002 (Ctrl+C detiene ambos)
 ```
 
@@ -56,7 +56,7 @@ npm run start:b      # terminal 2
 | T-12 | Seguridad | `npm test` · revisión | [#t-12](docs/PRUEBAS.md#t-12--seguridad) |
 
 ```bash
-npm test                 # las 34 pruebas automáticas
+npm test                 # las 35 pruebas automáticas
 npm run test:evidence    # igual, y guarda docs/evidencias/pruebas-automaticas.txt
 ```
 
@@ -67,6 +67,21 @@ powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 -Pausa
 ```
 
 Las pruebas automáticas usan los puertos 3101 a 3122 y bases temporales: **no tocan** `data/` ni los nodos de demostración.
+
+## 2.1 Prueba en dos computadoras (LAN)
+
+Cada nodo corre en su propia computadora. La red, el firewall y la desconexión (desconectar el Wi-Fi o el cable, o bloquear con el firewall) son **reales**. Guía paso a paso: **[docs/DESPLIEGUE_DOS_EQUIPOS.md](docs/DESPLIEGUE_DOS_EQUIPOS.md)**. Resumen:
+
+```powershell
+# En cada equipo, PowerShell como administrador (X = A o B; IP del OTRO equipo):
+powershell -ExecutionPolicy Bypass -File .\scripts\setup-lan.ps1 -Nodo X -IpPeer <IP_del_otro> -Firewall
+npm run start:lan:x                                   # start:lan:a o start:lan:b
+# En el equipo A:
+npm run net:test -- 20 http://IP_A:3001 http://IP_B:3002
+powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 -UrlB http://IP_B:3002 -Pausa
+```
+
+Antes de empezar, sincroniza la hora en ambos equipos: la política *Last Write Wins* compara marcas de tiempo, y la UI avisa si el desfase supera 1 s.
 
 ## 3. Simular la caída de red y evidenciar la recuperación
 
@@ -121,7 +136,9 @@ Tras iniciar B, recupera desde los peers lo posterior al respaldo con `POST /api
 | `npm run net:test` | Latencia cliente→nodo y nodo→nodo (evidencia en `docs/evidencias/`) |
 | `npm run backup -- <A\|B>` · `npm run restore -- <A\|B> <archivo>` | Respaldo y restauración |
 | `scripts/kill-node.ps1 -Port N` · `scripts/kill-node.sh N` | Caída real de un nodo |
-| `scripts/demo.ps1 [-Pausa]` | Guion de demostración con transcripción |
+| `scripts/demo.ps1 [-Pausa] [-UrlB http://IP_B:3002]` | Guion de demostración con transcripción (un equipo o dos) |
+| `scripts/setup-lan.ps1 -Nodo X -IpPeer IP [-Firewall] [-BloquearPeer]` | Configuración del modo dos computadoras |
+| `npm run start:lan:a` · `start:lan:b` | Arrancar un nodo en modo LAN (`config/nodeX.local.env`) |
 
 ## 6. Estructura
 
@@ -149,6 +166,7 @@ data/  backups/    bases y respaldos generados (ignorados por git)
 | Documento | Contenido |
 |---|---|
 | [docs/MANUAL_TECNICO.md](docs/MANUAL_TECNICO.md) | Arquitectura, instalación, configuración, despliegue, administración, diagnóstico, recuperación, seguridad, trazabilidad de requisitos, límites y **respuestas a las preguntas de la defensa** |
+| [docs/DESPLIEGUE_DOS_EQUIPOS.md](docs/DESPLIEGUE_DOS_EQUIPOS.md) | Prueba en dos computadoras: IP, perfil de red, hora, firewall, arranque, verificaciones, evidencias y problemas frecuentes |
 | [docs/PRUEBAS.md](docs/PRUEBAS.md) | Fichas T-01 a T-12 (precondiciones, pasos, esperado, observado, evidencia, conclusión) y procedimientos de caída y recuperación |
 | [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) | Uso de la interfaz, roles, avisos e insignias |
 | [docs/REGLAS.md](docs/REGLAS.md) | Fase 1: actores, estados, catálogos, identificadores y conflictos, contrato de API |

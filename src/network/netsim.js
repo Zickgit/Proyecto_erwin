@@ -18,6 +18,7 @@ export class PeerUnavailableError extends Error {
 }
 
 const MAX_EVENTS = 200;
+const CLOCK_SKEW_WARN_MS = 1000;
 
 export function createNetwork(config) {
   const self = { id: config.nodeId, name: config.nodeName };
@@ -37,6 +38,7 @@ export function createNetwork(config) {
       lastLatencyMs: null,
       consecutiveFailures: 0,
       remote: null, // info devuelta por el /api/health del peer
+      clockSkewMs: null, // reloj del peer − reloj local (estimado en el heartbeat)
     }]),
   );
 
@@ -137,12 +139,27 @@ export function createNetwork(config) {
     }
   }
 
-  /** Sondeo activo de salud a todos los peers (heartbeat). */
+  /**
+   * Sondeo activo de salud a todos los peers (heartbeat). Además estima el DESFASE DE RELOJ
+   * con cada peer (hora del peer − punto medio local de la petición, error ≤ RTT/2):
+   * la política Last Write Wins compara marcas de tiempo, así que en equipos distintos
+   * los relojes deben estar sincronizados (NTP). Se avisa si supera CLOCK_SKEW_WARN_MS.
+   */
   async function heartbeat() {
     await Promise.all([...peers.values()].map(async (p) => {
       try {
+        const sent = Date.now();
         const r = await peerFetch(p.id, '/api/health');
+        const received = Date.now();
         p.remote = r.body?.node ?? null;
+        const remoteTime = Date.parse(r.body?.time ?? '');
+        if (Number.isFinite(remoteTime)) {
+          const skew = Math.round(remoteTime - (sent + received) / 2);
+          const wasOk = p.clockSkewMs === null || Math.abs(p.clockSkewMs) <= CLOCK_SKEW_WARN_MS;
+          p.clockSkewMs = skew;
+          const isOk = Math.abs(skew) <= CLOCK_SKEW_WARN_MS;
+          if (wasOk !== isOk) logEvent(isOk ? 'CLOCK_OK' : 'CLOCK_SKEW', p.id, { skewMs: skew, thresholdMs: CLOCK_SKEW_WARN_MS });
+        }
       } catch { /* el estado ya quedó marcado como offline */ }
     }));
   }
@@ -219,6 +236,8 @@ export function createNetwork(config) {
       lastLatencyMs: p.lastLatencyMs,
       consecutiveFailures: p.consecutiveFailures,
       remote: p.remote,
+      clockSkewMs: p.clockSkewMs,
+      clockSkewWarnMs: CLOCK_SKEW_WARN_MS,
     }));
   }
 
